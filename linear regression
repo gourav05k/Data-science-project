@@ -1,0 +1,91 @@
+#import libraries
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split 
+from sklearn.linear_model import LogisticRegression
+from sklearn import metrics
+%matplotlib inline
+import warnings
+warnings.filterwarnings('ignore')
+
+#import dataset
+dataset = pd.read_csv(r"C:\Users\Gourav Kamboj\OneDrive\Desktop\DS_DATASET.csv") # read data from local computer
+#checking missing data
+dataset.isnull().sum().sort_values(ascending=False)
+
+# drop columns that we don't need including those having missing values more than 50%
+col_drop = ['First Name','Last Name','DOB [DD/MM/YYYY]','Current Employment Status','State','Zip Code','Gender','Email Address','Contact Number','Emergency Contact Number','University Name','Course Type','link to Linkedin profile','Link to updated Resume (Google/ One Drive link preferred)', 'Certifications/Achievement/ Research papers']
+dataset.drop(col_drop, axis=1, inplace=True)
+
+# strip the trailing and leading spaces
+dataset['Areas of interest'] = dataset['Areas of interest'].str.strip()
+
+# Splitting the attributes into independent and dependent attributes
+label_encode = {'Label':{'ineligible': 0, 'eligible': 1}}   #'Current Employment Status':{'Student': 1},
+dataset.replace(label_encode, inplace=True)
+
+X = dataset.iloc[:,:-1].values # attributes to determine dependent variable
+
+labelencoder_X = LabelEncoder()   # label encoding
+X[:,0]  = labelencoder_X.fit_transform(X[:,0])
+for i in range(2,6):
+    X[:,i]  = labelencoder_X.fit_transform(X[:,i])
+for i in range(8,13):
+    X[:,i]  = labelencoder_X.fit_transform(X[:,i])
+X[:,15]  = labelencoder_X.fit_transform(X[:,15])
+
+Y = dataset.iloc[:,-1].values # dependent(target) variable
+
+# normalization
+X_max = np.max(X, axis=0)
+X_min = np.min(X, axis=0)
+X_min,X_max
+X=(X-X_min)/(X_max-X_min) 
+
+
+# Standardization
+
+# from sklearn import preprocessing
+# # Get column names first
+# names = ['City', 'Age', 'College name', 'Degree', 'Major/Area of Study',
+#        'Which-year are you studying in?', 'CGPA/ percentage',
+#        'Expected Graduation-year', 'Areas of interest',
+#        'Have you worked core Java',
+#        'Programming Language Known other than Java (one major)',
+#        'Have you worked on MySQL or Oracle database',
+#        'Have you studied OOP Concepts',
+#        'Rate your written communication skills [1-10]',
+#        'Rate your verbal communication skills [1-10]',
+#        'How Did You Hear About This Internship?']
+
+# # Create the Scaler object
+# scaler = preprocessing.StandardScaler()
+# # Fit your data on the scaler object
+# scaled_df = scaler.fit_transform(X)
+# X = pd.DataFrame(scaled_df, columns=names)
+
+#train the dataset
+X_train,X_test,Y_train,Y_test=train_test_split(X,Y,test_size=0.20) #,random_state=0)
+logreg = LogisticRegression()
+logreg.fit(X_train,Y_train)
+
+Y_pred=logreg.predict(X_test)
+cnf_matrix = metrics.confusion_matrix(Y_test, Y_pred)
+print(cnf_matrix)
+fig, ax = plt.subplots()
+tick_marks = np.arange(len('Label'))
+plt.xticks(tick_marks, 'Label')
+plt.yticks(tick_marks, 'Label')
+sns.heatmap(pd.DataFrame(cnf_matrix), annot=True, cmap="viridis" ,fmt='g')
+ax.xaxis.set_label_position("top")
+plt.tight_layout()
+plt.title('Confusion matrix', Y=1.1)
+plt.ylabel('Actual label')
+plt.xlabel('Predicted label')
+print("Accuracy:",metrics.accuracy_score(Y_test, Y_pred))
+print("Precision:",metrics.precision_score(Y_test, Y_pred))
+print("Recall:",metrics.recall_score(Y_test, Y_pred))
